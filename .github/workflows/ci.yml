@@ -52,7 +52,7 @@ jobs:
       # 固定用官方源：任何人本地配的镜像源都不影响 CI 结果
       UV_DEFAULT_INDEX: https://pypi.org/simple
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: 安装 uv
         uses: astral-sh/setup-uv@v5
       - name: 按 lock 安装依赖
@@ -84,7 +84,7 @@ jobs:
       run:
         working-directory: desktop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: 安装 Node
         uses: actions/setup-node@v4
         with:
@@ -134,7 +134,7 @@ jobs:
       UV_PYTHON: "3.12"
       UV_DEFAULT_INDEX: https://pypi.org/simple
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: 安装 uv
         uses: astral-sh/setup-uv@v5
       - name: 按 lock 安装依赖
@@ -154,7 +154,7 @@ jobs:
       run:
         working-directory: desktop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: 安装 Node
         uses: actions/setup-node@v4
         with:
@@ -188,7 +188,7 @@ jobs:
       UV_PYTHON: "3.12"
       UV_DEFAULT_INDEX: https://pypi.org/simple
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: 安装 uv
         uses: astral-sh/setup-uv@v5
       - name: 安装后端依赖（含 PyInstaller）
