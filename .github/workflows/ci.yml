@@ -86,7 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: 安装 Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           # 固定 LTS 22：Node 20 已于 2026-04-30 停止维护，锁大版本避免同一 commit 半年后跑在别的版本上
           node-version: 22
@@ -156,7 +156,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: 安装 Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -195,7 +195,7 @@ jobs:
         working-directory: backend
         run: uv sync --frozen
       - name: 安装 Node（复用打包脚本）
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: 打包后端
