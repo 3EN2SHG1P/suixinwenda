@@ -1,0 +1,35 @@
+# 依赖与 GitHub Actions 的自动更新检查。
+#
+# 为什么不用「把 action 钉死到 commit SHA」：SHA 必须与真实发布逐一对应，
+# 手写错一个字符就让整条 CI 直接红，且没人会去核对这个差异。这里改用
+# dependabot 跟踪版本（它自己会校验 SHA），既能及时拿到补丁，也不会引入手写错误。
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /desktop
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies

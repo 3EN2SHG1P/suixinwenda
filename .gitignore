@@ -1,0 +1,71 @@
+# ---------- 依赖与构建产物 ----------
+node_modules/
+desktop/dist/
+# 旧安装包归档（发布新版本前把 dist 移到这里留档）：里面是 win-unpacked 等完整构建产物，
+# *.exe 只挡得住安装包本身，dll/pak/blockmap 会全部进仓库
+desktop/dist-archive/
+dist/
+# 只忽略根目录的 build/，desktop/build/ 是打包图标资源，必须入库
+/build/
+!desktop/build/
+!desktop/build/**
+# PyInstaller 的中间目录（backend/dist 已被上面的 dist/ 覆盖）
+backend/build/
+
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ---------- 环境变量与密钥（.env.example 一定要进仓库） ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+
+# ---------- 缓存与临时文件 ----------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+# pytest-cov 的产物（覆盖率只在 CI 强制，本地跑会在这里留报告）
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.log
+*.tmp
+*.bak
+# 本机跑命令时随手重定向出来的输出，含路径与端口，不入库
+*.out
+*.err
+~$*
+# 本机跑出来的数据库文件，不入库
+*.db
+*.sqlite
+*.sqlite3
+# SQLite 伴生文件：DATA_DIR 不在 backend/data 时也必须挡住
+*.db-wal
+*.db-shm
+*.db-journal
+# 用户上传的附件原文件（本机数据，不入库）
+backend/data/
+
+# ---------- 打包产物 ----------
+*.exe
+*.msi
+*.dmg
+*.AppImage
+
+# ---------- 编辑器与系统 ----------
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+# 编辑器与工具目录（含本机路径），不入库
+.codebuddy/
+# 本机临时探测目录，不入库
+.tmp-cors-probe/

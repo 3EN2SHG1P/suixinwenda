@@ -1,0 +1,10 @@
+# 默认由项目作者复核所有改动。
+# 目的：让 PR 自动带上 review 请求，避免「提了没人看」。
+*  @3EN2SHG1P
+
+# 发布流程与依赖锁文件单独点出：改错会直接影响所有用户
+/.github/workflows/  @3EN2SHG1P
+/backend/uv.lock     @3EN2SHG1P
+/desktop/package-lock.json  @3EN2SHG1P
+/LICENSE              @3EN2SHG1P
+/NOTICE               @3EN2SHG1P

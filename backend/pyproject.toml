@@ -1,0 +1,82 @@
+[project]
+name = "suixinwenda-backend"
+version = "0.1.0"
+description = "SuiXinWenDa desktop AI assistant backend (FastAPI + LangChain, SQLite or MySQL)"
+license = "MIT"
+# 许可证正文见仓库根目录 LICENSE（本目录不重复放一份，避免两处内容漂移）
+# 只声明 CI 真实跑过的版本：写 >=3.10 却只在 3.12 上验证，等于给 3.10 / 3.11 用户
+# 一个没测过的承诺（3.10 已于 2026-10 结束安全支持）。CI 固定 UV_PYTHON=3.12。
+requires-python = ">=3.12"
+authors = [{ name = "SuiXinWenDa contributors" }]
+keywords = ["fastapi", "langchain", "electron", "ai-assistant"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+# 精确版本以 uv.lock 为准（锁文件带 sha256）；这里给下界，保证脱离锁文件也不会装到不兼容的旧版
+dependencies = [
+    "fastapi>=0.141.1",
+    "uvicorn>=0.53.0",
+    "sqlmodel>=0.0.46",
+    "pymysql>=1.2.3",
+    "langchain>=1.4.2",
+    "langchain-openai>=1.6.3",
+    "pypdf>=6.19.0",
+    "python-docx>=1.2.0",
+    "openpyxl>=3.1.5",
+    "python-multipart>=0.0.32",
+    # 流式生成要在线程里跑同步生成器并支持客户端断开即停（routers/chat.py）
+    "anyio>=4.15.0",
+    "langchain-core>=1.6.4",
+]
+
+# 本目录不是独立分发的包（见 [tool.uv] package = false）：没有自己的 README，
+# 文档统一在仓库根目录，因此不写 readme 字段，避免填一个不存在的相对路径。
+[project.urls]
+Homepage = "https://github.com/3EN2SHG1P/suixinwenda"
+Repository = "https://github.com/3EN2SHG1P/suixinwenda.git"
+Issues = "https://github.com/3EN2SHG1P/suixinwenda/issues"
+Changelog = "https://github.com/3EN2SHG1P/suixinwenda/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/3EN2SHG1P/suixinwenda/blob/main/docs/README.md"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.28.0",
+    "ruff>=0.17.3",
+    "pyinstaller>=6.11",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.uv]
+# 本目录是应用而不是可安装的库：uv 只装依赖，不把 backend 构建成 wheel
+package = false
+
+# 不设默认镜像源：不同网络环境下最快的源不一样，需要时用
+#   uv sync --default-index https://mirrors.aliyun.com/pypi/simple
+# 或设置环境变量 UV_DEFAULT_INDEX 临时覆盖。
+# 注意：不要用 `uv add` 在本地带镜像源的环境里加依赖——它会把镜像地址写进本文件与 uv.lock，
+# 让 CI（固定 pypi.org）与海外用户装不上。加依赖请显式带上官方源：
+#   uv add --dev <pkg> --default-index https://pypi.org/simple
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+# 分批接入：先只开 E/F/W（语法与未使用类问题）。UP/SIM/BLE 等一次全开会产生大量
+# 与「本机单人、零框架、刻意克制」无关的改动，把 review 淹没
+# line-length 取 120 而非 100：现有代码最宽 114 行，按 100 会逼着 13 个文件重排换行（纯 churn，
+# 且与「禁止顺手重构无关代码」冲突）；120 与现存最宽行一致，E/F/W 其余规则照旧全开
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# S101 属 flake8-bandit，本轮未启用 S 类所以不会触发；先留位置，
+# 将来开 S 时测试文件不必再改一遍（pytest 的 assert 本来就是测试手段）
+"tests/*.py" = ["S101"]

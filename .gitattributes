@@ -1,0 +1,19 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.exe binary
+*.docx binary
+*.xlsx binary
+
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 第三方许可全文必须与上游字节一致：换行转换会让「附的这份」与官方发布的那份不再是同一文件
+desktop/build/PyInstaller-COPYING.txt -text

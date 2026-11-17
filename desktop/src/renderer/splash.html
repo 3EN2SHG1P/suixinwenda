@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+  <!-- 文件：desktop/src/renderer/splash.html 职责：启动 / 退出小窗骨架——logo + 一行真实阶段文字 + 底部 indeterminate 细线 + 底部小字；文案只由主进程的 splash:status 事件推进，页面不自己编中间态。 -->
+
+  <html lang="zh-CN" data-theme="light">
+    <head>
+      <meta charset="UTF-8" />
+      <!-- CSP 与 index.html 逐字一致：小窗只加载本地 css/js，连接能力照旧只放行本机回环 -->
+      <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src http://127.0.0.1:* http://localhost:*; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'none'; object-src 'none'; base-uri 'none'" />
+      <title>随心问答</title>
+      <link rel="stylesheet" href="splash.css" />
+    </head>
+
+    <body data-mode="boot">
+      <!-- 拖动区：整块小窗都能拖（无边框窗口没有系统标题栏） -->
+      <main class="splash-main">
+        <!-- 深浅共用一个图标原图（自带奶白圆角底板），主题只影响窗口底色与文字色 -->
+        <span class="splash-logo-box">
+          <img class="splash-logo" src="assets/logo-mark.png" alt="" draggable="false" />
+        </span>
+        <!-- role=status 隐含 aria-live=polite：阶段文字变化时读屏器才会播报；
+             不再叠加 aria-live 属性（ARIA in HTML 里属冲突写法） -->
+        <p class="splash-status" id="splash-status" role="status">正在启动本地服务…</p>
+      </main>
+      <div class="splash-progress" aria-hidden="true"><span></span></div>
+      <p class="splash-foot" id="splash-foot">会话存于你配置的数据库</p>
+      <script src="splash.js"></script>
+    </body>
+  </html>

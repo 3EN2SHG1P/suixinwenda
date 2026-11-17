@@ -1,0 +1,377 @@
+/**
+ * 文件：desktop/src/renderer/app-window.css
+ * 职责：独立子窗口的外壳样式（标题栏 / 视图容器 / 自绘缩放命中区 / 窗口内提示条）。
+ *      视图内部一律复用 styles.css 的既有组件（modal-card / settings-* / auth-* / preview-*），
+ *      这里只做「从弹窗变成窗口」所需的覆盖：卡片铺满、遮罩消失、阴影去掉。
+ */
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.aw-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--font-base);
+}
+
+/* 1. 标题栏（44px：比主窗口矮，小窗口不至于头重脚轻） */
+.aw-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 44px;
+  height: 44px;
+  padding: 0 6px 0 16px;
+  background: var(--bg-side);
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.aw-title {
+  flex: 0 0 auto;
+  max-width: 60%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aw-drag {
+  flex: 1 1 auto;
+  height: 100%;
+}
+.aw-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+.aw-actions .win-btn {
+  height: 28px;
+  width: 36px;
+}
+.aw-pin-icon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+/* 图钉按下：这一扇窗浮在其它软件之上（用户主动开启，默认不打扰） */
+#aw-pin.is-on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+body.is-maximized .aw-resize {
+  display: none;
+}
+
+/* 2. 视图容器：视图自己铺满，滚动都交给视图内部 */
+.aw-body {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 3. 复用弹窗卡片：铺满窗口、去掉圆角与阴影、去掉入场动画 */
+.aw-body > .modal-card,
+.aw-body > .modal-card-settings,
+.aw-body > .modal-card-preview,
+.aw-body > .modal-card-wide {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 20px 22px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+.aw-body > .modal-card-settings {
+  padding: 0;
+}
+/* 少一层卡片框，内容区自己滚，底部按钮固定 */
+.aw-body > .modal-card {
+  overflow: hidden;
+}
+.aw-body > .modal-card:not(.modal-card-settings) {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* 4. 登录：窗口只有 448px 宽，收起左侧品牌栏，改单栏表单 */
+.aw-body > .auth-shell {
+  display: block;
+  width: 100%;
+  max-height: none;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.aw-body .auth-brand {
+  display: none;
+}
+.aw-body > .auth-shell .auth-panel {
+  height: 100%;
+  padding: 24px 26px 20px;
+  overflow-y: auto;
+}
+
+/* 5. 图片预览：灯箱是「铺满视口」的浮层，放进窗口后改成普通容器 */
+.aw-body > .lightbox {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  height: 100%;
+  animation: none;
+}
+.aw-body > .lightbox .lightbox-stage {
+  border-radius: 0;
+}
+
+/* 6. 窗口内滚动条的留白：贴着窗口边缘时不要被裁掉 */
+.aw-body .settings-panes,
+.aw-body .preview-body,
+.aw-body .memory-body,
+.aw-body .storage-body {
+  scrollbar-gutter: stable;
+}
+/* 对话历史在弹窗里限高 380px，放进窗口后要吃掉剩余高度 */
+.aw-body .memory-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  margin-bottom: 0;
+}
+/* 对话历史头部：标题左、条数统计右；下面一行说明跟当前会话标题 */
+.aw-body .memory-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.aw-body .memory-head .modal-title {
+  margin: 0;
+}
+.aw-body .memory-stats {
+  flex: 0 0 auto;
+  color: var(--text-sub);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.aw-body .memory-sub {
+  flex: 0 0 auto;
+  margin: 6px 0 12px;
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 7. 提示条：窗口内自成一层，不抢焦点、不改变布局 */
+.aw-toast {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 40;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--toast-bg);
+  box-shadow: var(--shadow-pop);
+  color: var(--toast-fg);
+  font-size: 12px;
+  line-height: 1.5;
+  animation: aw-toast-in 140ms ease-out;
+}
+.aw-toast[hidden] {
+  display: none;
+}
+.aw-toast.is-error {
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+@keyframes aw-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 8. 自绘缩放命中区（frame:false 下系统边框只有 1px，点不中） */
+.aw-resize {
+  position: fixed;
+  z-index: 60;
+  -webkit-app-region: no-drag;
+}
+.aw-resize[data-edge='n'] {
+  top: 0;
+  right: 10px;
+  left: 10px;
+  height: 4px;
+  cursor: ns-resize;
+}
+.aw-resize[data-edge='s'] {
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  height: 6px;
+  cursor: ns-resize;
+}
+.aw-resize[data-edge='w'] {
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 5px;
+  cursor: ew-resize;
+}
+.aw-resize[data-edge='e'] {
+  top: 10px;
+  right: 0;
+  bottom: 10px;
+  width: 5px;
+  cursor: ew-resize;
+}
+.aw-resize[data-edge='nw'] {
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+.aw-resize[data-edge='ne'] {
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+.aw-resize[data-edge='sw'] {
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+.aw-resize[data-edge='se'] {
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+
+/* 9. 窗口内的行式动作条：底部按钮不能跟着内容滚走 */
+.aw-body .modal-actions {
+  flex: 0 0 auto;
+}
+.aw-body .settings-foot {
+  flex: 0 0 auto;
+}
+/* 确认框 / 存储窗的卡片自己分段留白（body + foot），外层不再重复加一圈 padding */
+.aw-body > .modal-card.modal-card-confirm,
+.aw-body > .modal-card.modal-card-520 {
+  padding: 0;
+}
+/* 内容不足一屏时，确认按钮贴底：窗口被拉高也不会让按钮悬在中间 */
+.aw-body > .modal-card-confirm .settings-foot {
+  margin-top: auto;
+}
+
+/* 5. 提示词库（示例窗口）：列表占满剩余高度，表单固定在底部 */
+.prompt-window {
+  gap: 10px;
+}
+.prompt-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+.prompt-toolbar .auth-input {
+  flex: 1 1 auto;
+}
+.prompt-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.prompt-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-card);
+}
+.prompt-item-main {
+  min-width: 0;
+}
+.prompt-item-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.prompt-item-text {
+  margin: 4px 0 0;
+  color: var(--text-sub);
+  font-size: 12.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.prompt-item-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+.prompt-form {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.prompt-form-row {
+  display: flex;
+  gap: 8px;
+}
+.prompt-form-row .auth-input {
+  flex: 1 1 auto;
+}
+.prompt-text {
+  min-height: 64px;
+  resize: vertical;
+  font-family: var(--font-body);
+  line-height: 1.55;
+}

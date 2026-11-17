@@ -1,0 +1,104 @@
+name: Release
+
+# 只由 tag 触发：Release 的产物必须与某个确切版本一一对应，分支上打不出可追溯的安装包
+on:
+  push:
+    tags: ["v*"]
+
+# 发版要创建 Release 并上传产物；其余权限一律不给
+permissions:
+  contents: write
+
+# 同一 tag 重复推送（例如删了重打）时，让最新一次跑完再覆盖，避免两个 job 抢同一个 Release
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-release:
+    name: 打包并发布（Windows x64）
+    runs-on: windows-latest
+    # 后端 PyInstaller + electron-builder 的 NSIS 下载在 Windows 上约 15~25 分钟
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: desktop
+    env:
+      # 与 ci.yml 同口径：不依赖任何本机 .env
+      JWT_SECRET: ci-placeholder-secret-key-for-github-actions-0123456789
+      UV_PYTHON: "3.12"
+      UV_DEFAULT_INDEX: https://pypi.org/simple
+      # 海外 runner 用官方源：tools/build.js 只在外部没设时才回落国内镜像。
+      # 必须以 / 结尾且不能自带 v：electron-builder 会拼成 `${mirror}v${version}/electron-v${version}-...`，
+      # 写成 `.../download/v` 会请求到 `vv44.11.3` 并 404（Release #1 就是这么失败的）。
+      ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
+      ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: 安装 uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: 安装后端依赖（含 PyInstaller）
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: 安装桌面端依赖
+        # 不用 --ignore-scripts：出包需要 electron 的 postinstall 元数据完整
+        run: npm ci
+
+      - name: 校验 tag 与版本号一致
+        # 打错 tag（v0.2.0 但 package.json 还是 0.1.0）时，产物名与 Release 名会互相矛盾，
+        # 而且用户没法判断该信哪个。这里直接失败，比发出去再撤回便宜。
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($tag -ne "v$version") {
+            throw "tag $tag 与 desktop/package.json 的版本 v$version 不一致"
+          }
+          Write-Host "[RELEASE] tag 与版本号一致：$tag"
+
+      - name: 打包（后端 exe + 安装版 + 免安装版）
+        run: npm run dist
+
+      - name: 确认产物齐备
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $need = @(
+            "dist/SuiXinWenDa-Setup-$version.exe",
+            "dist/SuiXinWenDa-Portable-$version.exe",
+            "dist/SHA256SUMS.txt"
+          )
+          foreach ($file in $need) {
+            if (-not (Test-Path $file)) { throw "缺少产物：$file" }
+          }
+          Get-Content dist/SHA256SUMS.txt
+          Write-Host "[RELEASE] 产物自检通过"
+
+      - name: 创建 Release 并上传
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          # 已存在同名 Release 时先删掉，避免重复触发时上传失败
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -eq 0) { gh release delete $tag --yes }
+          gh release create $tag `
+            "dist/SuiXinWenDa-Setup-$version.exe" `
+            "dist/SuiXinWenDa-Portable-$version.exe" `
+            "dist/SHA256SUMS.txt" `
+            --title "随心问答 $tag" `
+            --generate-notes
+
+# 明确不做：代码签名（无证书）、自动更新（本项目无更新服务）、macOS/Linux 产物（未适配）

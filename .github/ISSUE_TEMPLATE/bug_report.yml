@@ -1,0 +1,81 @@
+name: Bug 报告
+description: 报告一个可以复现的问题
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提之前先看 `README.md` 第 4 节「跑不起来怎么办」、`docs/踩坑与FAQ.md`，
+        以及 `docs/使用手册.md` 第 13 节「常见问题」，多数问题能自己解决。
+        **不要贴 API Key、数据库口令、内网地址与个人隐私。**
+        安全漏洞请走 `SECURITY.md` 里的私密渠道，不要开公开 Issue。
+  - type: dropdown
+    id: form
+    attributes:
+      label: 你是哪种用法
+      description: 两种形态的排查路径不同（安装版看 `%APPDATA%\suixinwenda-desktop`，源码方式看仓库里的 `start.log`）
+      options:
+        - 安装版（从 Releases 下载的 Setup / Portable）
+        - 源码方式（git clone 后用 start.ps1 启动）
+        - 不确定
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 应用版本
+      description: 应用内「设置 → 关于」可以看到；源码方式也可贴 `git rev-parse --short HEAD`
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 你做了什么 / 实际看到什么
+      description: 哪一步、点了哪里；期望看到什么、实际看到什么。有截图更好。
+      placeholder: |
+        1. 打开应用，点「登录」→「注册」
+        2. 提交后提示 xxx
+        3. 期望 xxx
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 关键输出（启动类问题必填）
+      description: |
+        源码方式：贴仓库根目录 `start.log` 的最后 20 行——它会写明停在哪一步和退出码
+        （1 环境 / 2 配置 / 3 数据库 / 4 依赖 / 5 启动失败）。
+        另外可贴 `backend\backend.log` 末尾、桌面端控制台报错（`npm start -- --dev` 开 DevTools）、
+        `/api/v1/health` 的返回。
+      render: text
+    validations:
+      required: false
+  - type: dropdown
+    id: database
+    attributes:
+      label: 数据存在哪里
+      options:
+        - 本机 SQLite（默认）
+        - docker compose 起的 MySQL（仓库自带 suixinwenda-mysql）
+        - 本机已装的 MySQL
+        - 自己的 Docker 容器
+        - 远程 MySQL
+        - 不确定
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      description: 操作系统、Python 版本、Node 版本（`python -V` / `node -v`）；安装版只写系统版本即可
+      placeholder: Windows 11 / Python 3.12.4 / Node 22.12.0
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我确认贴出的内容里没有真实 API Key、数据库口令、内网地址与个人隐私
+          required: true

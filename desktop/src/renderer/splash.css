@@ -1,0 +1,156 @@
+/*
+ * 文件：desktop/src/renderer/splash.css
+ * 职责：启动 / 退出小窗样式——72px logo 呼吸、13px 状态文字、底部 2px indeterminate 细线、11px 底部小字。
+ * 口径：配色与主窗口一致（styles.css 的 --bg / --text-sub / --accent / --danger），
+ *      否则窗口底色是深色、页面底色是浅色，小窗自己就会闪一下。
+ */
+
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --text: #14171a;
+  --text-sub: #666e75;
+  --accent: #0e7c6e;
+  --danger: #be3f33;
+  --track: rgba(14, 124, 110, 0.16);
+  --font-body: 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0c0e10;
+  --text: #edeff1;
+  --text-sub: #9aa3aa;
+  --accent: #3ed9be;
+  --danger: #f2776a;
+  --track: rgba(62, 217, 190, 0.22);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 无边框窗口没有系统标题栏：整块都是拖动区 */
+  -webkit-app-region: drag;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  /* 小窗不该出现滚动条，也不该能选中文字 */
+  overflow: hidden;
+  user-select: none;
+}
+
+/* 主区占满剩余高度并在视觉上居中：底部小字与进度线不参与居中 */
+.splash-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  /* 视觉重心上移一点，给小字与进度线留出呼吸空间 */
+  padding-bottom: 18px;
+}
+
+/* 图标原图是满幅圆角底板，88px 直接铺满裁切框即可 */
+.splash-logo-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 88px;
+  height: 88px;
+  border-radius: 20px;
+  overflow: hidden;
+  animation: splash-breathe 2s ease-in-out infinite;
+}
+
+.splash-logo {
+  flex: 0 0 auto;
+  width: 88px;
+  height: 88px;
+}
+
+@keyframes splash-breathe {
+  0%,
+  100% {
+    transform: scale(0.98);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.splash-status {
+  margin: 0;
+  max-width: 360px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  text-align: center;
+  /* 阶段文案是短句：不换行、不裁切，抖一下也比省略号好 */
+  white-space: nowrap;
+}
+
+/* 失败原因是一整句中文报错（含端口 / 日志路径），单行放不下：
+   这里必须允许换行，裁掉后半句等于把「怎么救」的信息一起藏了。
+   但也不能无限换行——420×300 里换到 4 行就会把 logo 与底注挤掉，
+   所以用 -webkit-line-clamp 限 3 行（四行缺一行都不生效，省略号由它负责） */
+.splash-status.is-error {
+  color: var(--danger);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+/* 底部细线：只表示「还在动」，不表示进度百分比 */
+.splash-progress {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+  background: var(--track);
+}
+
+.splash-progress span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 32%;
+  background: var(--accent);
+  animation: splash-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes splash-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+.splash-foot {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-sub);
+  text-align: center;
+  opacity: 0.72;
+}

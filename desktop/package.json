@@ -1,0 +1,117 @@
+{
+  "name": "suixinwenda-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SuiXinWenDa (随心问答) - AI chat desktop app",
+  "author": "SuiXinWenDa contributors",
+  "license": "MIT",
+  "main": "src/main.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "electron .",
+    "smoke": "node tools/run-smoke.js",
+    "smoke:raw": "electron . --smoke",
+    "mock": "node tools/mock-server.js",
+    "test": "node --test \"test/*.test.js\"",
+    "test:cov": "node --test --experimental-test-coverage \"--test-coverage-include=src/**\" \"test/*.test.js\"",
+    "lint": "eslint src tools test",
+    "icons": "python tools/gen-icons.py",
+    "icons:check": "python tools/gen-icons.py --check",
+    "licenses": "python tools/gen-licenses.py",
+    "licenses:check": "python tools/gen-licenses.py --check",
+    "preview": "python tools/gen-social-preview.py",
+    "version:sync": "node tools/sync-version.js",
+    "version:check": "node tools/sync-version.js --check",
+    "check:globals": "node tools/check-globals.js",
+    "build:backend": "node tools/build-backend.js",
+    "dist": "node tools/build.js",
+    "dist:app": "node tools/build.js --app-only",
+    "verify:packaged": "node tools/verify-packaged.js"
+  },
+  "build": {
+    "appId": "io.github.suixinwenda.desktop",
+    "productName": "SuiXinWenDa",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "asar": true,
+    "compression": "maximum",
+    "files": [
+      "src/**/*",
+      "!src/renderer/smoke.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../LICENSE",
+        "to": "LICENSE"
+      },
+      {
+        "from": "../NOTICE",
+        "to": "NOTICE"
+      },
+      {
+        "from": "../THIRD-PARTY-NOTICES.md",
+        "to": "THIRD-PARTY-NOTICES.md"
+      },
+      {
+        "from": "build/PyInstaller-COPYING.txt",
+        "to": "PyInstaller-COPYING.txt"
+      },
+      {
+        "from": "build/THIRD-PARTY-LICENSES.txt",
+        "to": "THIRD-PARTY-LICENSES.txt"
+      },
+      {
+        "from": "../backend/dist/suixinwenda-backend",
+        "to": "backend"
+      },
+      {
+        "from": "../backend/.env.example",
+        "to": "backend/.env.example"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "随心问答",
+      "uninstallDisplayName": "随心问答",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "include": "build/installer.nsh",
+      "packElevateHelper": false
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "44.11.3",
+    "electron-builder": "26.15.3",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0"
+  }
+}

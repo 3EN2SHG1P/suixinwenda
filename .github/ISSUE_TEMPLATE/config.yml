@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞（请勿公开提交）
+    url: https://github.com/3EN2SHG1P/suixinwenda/security/advisories/new
+    about: 走私密安全公告，不要在公开 Issue 里贴复现脚本或密钥。
+  - name: 启动 / 报错先查排错手册
+    url: https://github.com/3EN2SHG1P/suixinwenda/blob/main/docs/踩坑与FAQ.md
+    about: 启动、SSE、数据库、桌面端、打包五类问题，逐条给了现象 / 根因 / 处理。
+  - name: 不知道看哪份文档
+    url: https://github.com/3EN2SHG1P/suixinwenda/blob/main/docs/README.md
+    about: 文档总索引：使用手册 / 配置与接口 / 踩坑与 FAQ / 打包与发布 / 开发者文档，按目的找。

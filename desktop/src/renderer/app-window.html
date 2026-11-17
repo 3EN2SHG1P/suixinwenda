@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- 文件：desktop/src/renderer/app-window.html 职责：独立子窗口的统一外壳（自绘标题栏 + 视图容器）；视图由 ?view= 决定，见 app-window.js 与 views/*.js -->
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- 与主窗口同一套 CSP：只连本机回环、只跑本地脚本，不允许被导航走 -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src http://127.0.0.1:* http://localhost:*; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'none'; object-src 'none'; base-uri 'none'"
+    />
+    <title>随心问答</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="app-window.css" />
+  </head>
+
+  <body class="aw-window">
+    <header class="aw-bar">
+      <span id="aw-title" class="aw-title">随心问答</span>
+      <div class="aw-drag" aria-hidden="true"></div>
+      <div class="aw-actions">
+        <button id="aw-pin" class="win-btn" type="button" title="置顶显示" aria-label="置顶显示">
+          <svg class="aw-pin-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 17v5" />
+            <path d="M9 4h6l-1 6 4 3v2H6v-2l4-3-1-6z" /></svg>
+        </button>
+        <!-- 不提供最小化键：子窗口 skipTaskbar，最小化后任务栏没有入口，
+             非单例窗口会彻底找不回来；它又与关闭键相邻，是误点的最大来源 -->
+        <button id="aw-max" class="win-btn" type="button" title="最大化" aria-label="最大化">
+          <span class="win-icon-max"></span></button>
+        <button id="aw-close" class="win-btn win-btn-close" type="button" title="关闭" aria-label="关闭">&#215;</button>
+      </div>
+    </header>
+
+    <main id="aw-root" class="aw-body"></main>
+
+    <div id="aw-toast" class="aw-toast" role="status" aria-live="polite" hidden></div>
+
+    <!-- 自绘缩放命中区：frame:false 下系统边框只有 1px，实际点不中 -->
+    <div class="aw-resize" data-edge="n"></div>
+    <div class="aw-resize" data-edge="s"></div>
+    <div class="aw-resize" data-edge="w"></div>
+    <div class="aw-resize" data-edge="e"></div>
+    <div class="aw-resize" data-edge="nw"></div>
+    <div class="aw-resize" data-edge="ne"></div>
+    <div class="aw-resize" data-edge="sw"></div>
+    <div class="aw-resize" data-edge="se"></div>
+
+    <script src="lib/markdown.js"></script>
+    <script src="lib/window-kit.js"></script>
+    <script src="app-window.js"></script>
+  </body>
+</html>

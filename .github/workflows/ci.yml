@@ -1,0 +1,228 @@
+name: CI
+
+# 只在 push / PR 到 main 时跑：不做多余的定时任务，避免无意义的构建队列
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 默认令牌权限收紧到只读：CI 只需要 checkout 代码，不需要写回仓库
+permissions:
+  contents: read
+
+# 同一分支连续 push 时取消上一轮未跑完的：既省分钟，也让最新提交先出结果
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: 后端（ruff + pytest）
+    runs-on: ubuntu-latest
+    # 卡住（例如 MySQL service 起不来）时不要占满默认 6 小时
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "123456"
+          MYSQL_DATABASE: suixinwenda
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p123456"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      # .env 不入库，CI 里必须显式给全（与本地 backend/.env 的键一致）
+      DB_HOST: 127.0.0.1
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_NAME: suixinwenda
+      # 仅占位：JWT_SECRET 要求 ≥32 字符，CI 不签发真实令牌
+      JWT_SECRET: ci-placeholder-secret-key-for-github-actions-0123456789
+      # 固定解释器版本：pyproject 声明 >=3.12，不钉的话同一 commit 半年后会跑在新版本上
+      UV_PYTHON: "3.12"
+      # 固定用官方源：任何人本地配的镜像源都不影响 CI 结果
+      UV_DEFAULT_INDEX: https://pypi.org/simple
+    steps:
+      - uses: actions/checkout@v4
+      - name: 安装 uv
+        uses: astral-sh/setup-uv@v5
+      - name: 按 lock 安装依赖
+        # --frozen：lock 与 pyproject 不同步时直接失败，避免 CI 与本地行为不一致
+        run: uv sync --frozen
+      - name: lint
+        run: uv run ruff check .
+      - name: 单元测试（含覆盖率门槛）
+        # 门槛只在 CI 强制：本地单跑某个测试文件时，不该因为「没覆盖全项目」而失败
+        # 实测语句覆盖率 85%，门槛 80% 留出平台差异与新增代码的余量
+        run: >-
+          uv run pytest -q
+          --cov=core --cov=routers --cov=models --cov=tools --cov=schemas
+          --cov-report=term-missing --cov-fail-under=80
+      - name: MySQL 方言契约
+        # 上面的 mysql service 只为这一步存在：默认整套测试走 SQLite，
+        # 不显式开 TEST_MYSQL 它就永远没人用（白起容器还多一条失败面）
+        env:
+          TEST_MYSQL: "1"
+        # test_restore.py 里「SQLite 备份灌进 MySQL」那条用例同样只在 TEST_MYSQL=1 时才跑，
+        # 以前没人带上它，最危险的跨库路径在任何 CI 里都不执行
+        run: uv run pytest -q tests/test_dialect_contract_mysql.py tests/test_restore.py
+
+  desktop:
+    name: 桌面端（lint + node --test）
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          # 固定 LTS 22：Node 20 已于 2026-04-30 停止维护，锁大版本避免同一 commit 半年后跑在别的版本上
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: 按 lock 安装依赖
+        # --ignore-scripts：lint 与 node --test 都不需要 Electron 二进制，跳过 postinstall
+        # 省掉 100MB+ 下载，也消掉「Electron 下载超时导致 job 红」的假失败。
+        # 将来若把冒烟或 npm run dist 搬进 CI，这里必须改回 npm ci（否则二进制不存在）
+        run: npm ci --ignore-scripts
+      - name: 运行时依赖漏洞检查
+        # 只看会随程序一起运行的依赖（--omit=dev）：本项目运行时依赖为空，
+        # 一旦有人往 dependencies 里加了带漏洞的包，这里会直接失败。
+        # dev 链（electron-builder 的 minimatch / fast-uri 等）不进产物、数量随升级漂移，
+        # 由 dependabot 按月跟踪，不在这里拦截——否则每次升级都要还一次技术债。
+        run: npm audit --omit=dev --audit-level=high
+      - name: lint
+        run: npm run lint
+      - name: 版本号一致性
+        run: npm run version:check
+      - name: classic script 顶层声明冲突
+        run: npm run check:globals
+      - name: 单元测试
+        run: npm test
+      - name: 覆盖率报告（只输出，不设门槛）
+        # 桌面端没有覆盖率门槛：app.js / main.js 这类巨块没有 unit 测试，
+        # 设 --fail-under 只会逼出为凑数而写的测试。这一步的价值是把缺口打进日志，
+        # 谁动了 lib/ 或主进程模块，PR 里就能看到变化。
+        run: npm run test:cov
+
+  # Windows 双 job：GBK 控制台乱码、VACUUM 事务、文件被占用删不掉这类问题只在 Windows 上出现，
+  # Linux 全绿也照样漏出去（历史踩坑：pytest 删临时目录报 WinError 32、工具子进程输出中文乱码）。
+  backend-windows:
+    name: 后端（Windows）
+    runs-on: windows-latest
+    # Windows runner 比 Linux 慢一截，uv sync 也要现装解释器
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # 不设 DB_*：Windows runner 不支持 service containers，跑不了 MySQL 契约用例；
+      # 整套单测本来就强制 DB_BACKEND=sqlite（conftest），这里只补 JWT 占位
+      JWT_SECRET: ci-placeholder-secret-key-for-github-actions-0123456789
+      UV_PYTHON: "3.12"
+      UV_DEFAULT_INDEX: https://pypi.org/simple
+    steps:
+      - uses: actions/checkout@v4
+      - name: 安装 uv
+        uses: astral-sh/setup-uv@v5
+      - name: 按 lock 安装依赖
+        run: uv sync --frozen
+      - name: lint
+        run: uv run ruff check .
+      # 覆盖率门槛只在 Ubuntu job 上强制：两个平台各跑一份报告没有额外信息，
+      # 而 Windows 的文件锁 / 编码差异已由本 job 的「能不能全绿」覆盖
+      - name: 单元测试
+        run: uv run pytest -q
+
+  desktop-windows:
+    name: 桌面端（Windows）
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: 按 lock 安装依赖
+        run: npm ci --ignore-scripts
+      - name: lint
+        run: npm run lint
+      - name: 版本号一致性
+        run: npm run version:check
+      - name: classic script 顶层声明冲突
+        run: npm run check:globals
+      - name: 单元测试
+        run: npm test
+
+  # 打包冒烟：只验「后端 exe 能起来 + /health 返回 code:0」，不跑 electron-builder、不碰 GUI。
+  # 没有这一步时，spec 的 hiddenimports 漏项、extraResources 路径写错都只能等发版当天才发现。
+  backend-package:
+    name: 后端打包（PyInstaller + 健康检查）
+    runs-on: windows-latest
+    # uv sync + PyInstaller 在 Windows 上约 8~12 分钟，留足余量后强杀
+    timeout-minutes: 30
+    env:
+      JWT_SECRET: ci-placeholder-secret-key-for-github-actions-0123456789
+      # 直接跑 exe 时没有 desktop 生成的 userData/config.env，也就没有 .env.example 兜底：
+      # 这两个键在代码里没有内置默认值，缺一个就会 `缺少配置项：...` 直接起不来（启动即退出）
+      JWT_EXPIRE_SECONDS: "604800"
+      CODE_EXPIRE_SECONDS: "300"
+      UV_PYTHON: "3.12"
+      UV_DEFAULT_INDEX: https://pypi.org/simple
+    steps:
+      - uses: actions/checkout@v4
+      - name: 安装 uv
+        uses: astral-sh/setup-uv@v5
+      - name: 安装后端依赖（含 PyInstaller）
+        working-directory: backend
+        run: uv sync --frozen
+      - name: 安装 Node（复用打包脚本）
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 打包后端
+        working-directory: desktop
+        run: node tools/build-backend.js
+      - name: 启动 exe 并请求 /health
+        shell: pwsh
+        run: |
+          $env:DATA_DIR = Join-Path $env:RUNNER_TEMP "suixinwenda-ci-data"
+          $env:BACKEND_PORT = "8121"
+          $exe = "backend/dist/suixinwenda-backend/suixinwenda-backend.exe"
+          $proc = Start-Process -FilePath $exe -PassThru -NoNewWindow
+          try {
+            $ok = $false
+            for ($i = 0; $i -lt 60; $i++) {
+              Start-Sleep -Seconds 1
+              try {
+                $resp = Invoke-RestMethod -Uri "http://127.0.0.1:8121/api/v1/health" -TimeoutSec 3
+                if ($resp.code -eq 0) { $ok = $true; break }
+              } catch {
+                # 还没起来，继续等
+              }
+            }
+            if (-not $ok) { throw "后端 exe 在 60 秒内没有返回 code=0" }
+            Write-Host "[PACKAGE] PASS 后端 exe 健康检查通过"
+          } finally {
+            if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
+
+# 明确不跑：npm run smoke（需 GUI，留本机手工）、npm run dist（产出安装包慢且与代码质量无关）

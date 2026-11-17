@@ -1,0 +1,45 @@
+# 随心问答 · 本项目专属 MySQL（独立 compose 分组 suixinwenda）
+#
+# 用法：在仓库根目录执行 `docker compose up -d`，等 suixinwenda-mysql 变 healthy 即可启动后端
+#
+# 分组：项目名固定 suixinwenda（与 Docker Desktop 里的其它分组互不干扰）
+#       容器 suixinwenda-mysql，数据卷 suixinwenda-mysql-data（删除请显式 docker volume rm）
+# 端口：宿主 127.0.0.1:3306 -> 容器 3306，不向局域网暴露
+# 口令：root 口令默认 123456（可用 MYSQL_ROOT_PASSWORD 覆盖），必须与 backend/.env 的 DB_PASSWORD 一致
+#       这是本机回环上的开发默认值，不是安全口令：不要把 3306 映射到公网，也不要在共享机器上沿用
+# 库名：suixinwenda，字符集 utf8mb4 / utf8mb4_unicode_ci
+# 策略：restart: unless-stopped（本项目要用的库，允许随 Docker Desktop 启动）
+#
+# 说明：只起数据库，后端与桌面端仍在本机跑（便于改代码）
+name: suixinwenda
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: suixinwenda-mysql
+    # 默认不启动：需要 MySQL 时手动 `docker compose up -d`。
+    # 不用 on-failure：MySQL 起不来时会反复重试刷日志，且开机仍不会启动
+    restart: "no"
+    # 只绑回环地址；宿主端口固定 3306，与 backend/.env 的 DB_PORT 一致
+    ports:
+      - "127.0.0.1:3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-suixinwenda}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - suixinwenda-mysql-data:/var/lib/mysql
+    healthcheck:
+      # 用容器内的环境变量取口令，避免在 compose 文件里再写一遍明文
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  suixinwenda-mysql-data:
+    name: suixinwenda-mysql-data
