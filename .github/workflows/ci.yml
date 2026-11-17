@@ -54,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: 安装 uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
       - name: 按 lock 安装依赖
         # --frozen：lock 与 pyproject 不同步时直接失败，避免 CI 与本地行为不一致
         run: uv sync --frozen
@@ -136,7 +136,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: 安装 uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
       - name: 按 lock 安装依赖
         run: uv sync --frozen
       - name: lint
@@ -190,7 +190,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: 安装 uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
       - name: 安装后端依赖（含 PyInstaller）
         working-directory: backend
         run: uv sync --frozen
