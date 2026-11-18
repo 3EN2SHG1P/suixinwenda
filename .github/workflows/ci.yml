@@ -6,6 +6,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # 手动重跑：runner 偶发网络抖动导致红叉时，不必再提交一次空改动
+  workflow_dispatch:
 
 # 默认令牌权限收紧到只读：CI 只需要 checkout 代码，不需要写回仓库
 permissions:
